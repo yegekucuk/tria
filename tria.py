@@ -9,7 +9,7 @@ import argparse
 
 from src.chunker import SimpleChunker
 from src.readers import RepoReader
-from src.writers import JsonWriter, MarkdownWriter, XMLWriter
+from src.writers import JsonWriter, MarkdownWriter, XMLWriter, TOONWriter
 from src.git_analyzer import GitAnalyzer
 
 
@@ -27,21 +27,21 @@ Examples:
   tria ./my-repo -f md -o repo_summary.md
   tria . --exclude 'tests' --format json
   tria /path/to/repo --verbose --chunk-size 100
-  tria . --git-history --format json
+  tria . --git-history --format json -o repo.json
         """
     )
     
     parser.add_argument('path', help='Path to repository')
-    parser.add_argument('-f', '--format', choices=['md', 'json', 'xml'], default='md',
-                       help='Output format (default: md)')
+    parser.add_argument('-f', '--format', choices=['toon', 'md', 'json', 'xml'], default='toon',
+                       help='Output format (default: toon)')
     parser.add_argument('-o', '--output', 
-                       help='Output file path (default: ./tria_output.[md|json|xml])')
+                       help='Output file path (default: ./tria_output.[toon|md|json|xml])')
     parser.add_argument('--exclude', action='append', default=[],
                        help='Exclude path pattern (can be repeated)')
     parser.add_argument('--no-gitignore', action='store_false', dest='gitignore',
                        help='Do not use .gitignore to exclude files (gitignore is used by default)')
     parser.add_argument('--git-history', action='store_true',
-                       help='Include git history (commits, contributors). Disabled by default')
+                       help='Include git history')
     parser.add_argument('--git-commits', type=int, default=20,
                        help='Number of recent commits to include (default: 20)')
     parser.add_argument('--chunk-size', type=int, default=50,
@@ -111,8 +111,10 @@ Examples:
                 writer = XMLWriter(logger)
             case "json":
                 writer = JsonWriter(logger)
-            case _:
+            case "md":
                 writer = MarkdownWriter(logger)
+            case _:
+                writer = TOONWriter(logger)
         writer.write(str(repo_path), documents, args.output, git_analyzer, args.git_commits)
         logger.info(f"✓ Output written to: {args.output}")
     else:

@@ -2,7 +2,7 @@ from datetime import datetime
 import json
 from logging import Logger
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
@@ -412,3 +412,182 @@ class XMLWriter:
             f.write(xml_str)
         
         self.logger.info(f"Wrote XML output to {output_path}")
+
+
+class TOONWriter:
+    """Writes output in TOON (Token-Oriented Object Notation) format"""
+    def __init__(self, logger: Logger):
+        self.logger = logger
+    
+    def _escape_value(self, value: Any) -> str:
+        """Escape a value for TOON format"""
+        if value is None:
+            return ""
+        if isinstance(value, bool):
+            return "true" if value else "false"
+        if isinstance(value, (int, float)):
+            return str(value)
+        # Convert to string and escape if needed
+        s = str(value)
+        # If string contains comma, newline, or leading/trailing whitespace, quote it
+        if ',' in s or '\n' in s or s != s.strip() or '"' in s:
+            # Escape double quotes
+            s = s.replace('"', '""')
+            return f'"{s}"'
+        return s
+    
+    def _format_array(self, arr: List[Any], indent: int = 0) -> List[str]:
+        """Format an array in TOON style"""
+        lines = []
+        if not arr:
+            return [f"[0]: "]
+        
+        # Check if all items are uniform objects (dicts with same keys)
+        if all(isinstance(item, dict) for item in arr):
+            # Check if they have the same keys
+            first_keys = set(arr[0].keys()) if arr else set()
+            if all(set(item.keys()) == first_keys for item in arr):
+                # Tabular format
+                keys = list(arr[0].keys())
+                header = f"[{len(arr)}]{{{','.join(keys)}}}:"
+                lines.append(header)
+                for item in arr:
+                    values = [self._escape_value(item.get(k)) for k in keys]
+                    lines.append("  " + ",".join(values))
+                return lines
+        
+        # Non-uniform array or simple values
+        if all(not isinstance(item, (dict, list)) for item in arr):
+            # Simple array of primitives
+            values = [self._escape_value(v) for v in arr]
+            return [f"[{len(arr)}]: " + ",".join(values)]
+        
+        # Mixed or nested array - use line-by-line format
+        lines.append(f"[{len(arr)}]:")
+        for item in arr:
+            lines.extend(self._format_value(item, indent + 1))
+        return lines
+    
+    def _format_value(self, value: Any, indent: int = 0) -> List[str]:
+        """Format a value recursively"""
+        prefix = "  " * indent
+        
+        if isinstance(value, dict):
+            lines = []
+            for key, val in value.items():
+                if isinstance(val, list):
+                    array_lines = self._format_array(val, indent)
+                    lines.append(f"{prefix}{key}{array_lines[0]}")
+                    lines.extend([f"{prefix}{line}" for line in array_lines[1:]])
+                elif isinstance(val, dict):
+                    lines.append(f"{prefix}{key}:")
+                    lines.extend(self._format_value(val, indent + 1))
+                else:
+                    lines.append(f"{prefix}{key}: {self._escape_value(val)}")
+            return lines
+        elif isinstance(value, list):
+            return self._format_array(value, indent)
+        else:
+            return [f"{prefix}{self._escape_value(value)}"]
+    
+    def write(self, repo_path: str, documents: List[Document], output_path: str,
+              git_analyzer: Optional[GitAnalyzer] = None, commits_limit: int = 20):
+        """Generate TOON output"""
+        content = []
+        
+        # Build the data structure
+        tree = build_folder_structure(documents)
+        log_tree(self.logger, tree)
+        structure = tree_to_list(tree)
+        
+        output = {
+            "repo": {
+                "name": Path(repo_path).absolute().name,
+                "path": str(Path(repo_path).absolute()),
+                "generated_at": datetime.now().isoformat(),
+                "files_processed": len(documents)
+            },
+            "structure": structure,
+            "files": []
+        }
+        
+        # Add Git History
+        if git_analyzer and git_analyzer.is_git_repo:
+            git_data = {
+                "summary": git_analyzer.get_summary(),
+                "branches": [],
+                "recent_commits": [],
+                "contributors": []
+            }
+            
+            # Branches
+            branches = git_analyzer.get_branches()
+            for branch in branches[:10]:
+                git_data["branches"].append({
+                    "name": branch.name,
+                    "is_current": branch.is_current,
+                    "last_commit": branch.last_commit,
+                    "last_commit_date": branch.last_commit_date.isoformat()
+                })
+            
+            # Commits
+            commits = git_analyzer.get_commits(limit=commits_limit)
+            for commit in commits:
+                git_data["recent_commits"].append({
+                    "hash": commit.hash,
+                    "author": commit.author,
+                    "email": commit.email,
+                    "date": commit.date.isoformat(),
+                    "message": commit.message,
+                    "files_changed": commit.files_changed,
+                    "insertions": commit.insertions,
+                    "deletions": commit.deletions
+                })
+            
+            # Contributors
+            contributors = git_analyzer.get_contributors()
+            for contrib in contributors[:10]:
+                git_data["contributors"].append({
+                    "name": contrib.name,
+                    "email": contrib.email,
+                    "commits": contrib.commits,
+                    "insertions": contrib.insertions,
+                    "deletions": contrib.deletions
+                })
+            
+            output["git_history"] = git_data
+        
+        # Add files
+        for doc in documents:
+            file_info = {
+                "path": doc.path,
+                "language": doc.language,
+                "size_bytes": doc.size_bytes,
+                "lines": doc.lines,
+                "metadata": {}
+            }
+            
+            if doc.language == "python":
+                file_info["metadata"]["functions"] = doc.meta.get("functions", [])
+                file_info["metadata"]["classes"] = doc.meta.get("classes", [])
+            elif doc.language == "markdown":
+                file_info["metadata"]["headers"] = doc.meta.get("headers", [])
+            elif doc.language == "license":
+                file_info["metadata"]["header"] = doc.meta.get("header", "")
+            elif doc.language == "dockerfile":
+                file_info["metadata"]["image"] = doc.meta.get("image", "")
+                file_info["metadata"]["workdir"] = doc.meta.get("workdir", "")
+                file_info["metadata"]["entrypoint"] = doc.meta.get("entrypoint", "")
+                file_info["metadata"]["cmd"] = doc.meta.get("cmd", "")
+                file_info["metadata"]["env"] = doc.meta.get("env", "")
+            
+            output["files"].append(file_info)
+        
+        # Convert to TOON format
+        toon_lines = self._format_value(output, 0)
+        
+        # Write to file
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(toon_lines))
+        
+        self.logger.info(f"Wrote TOON output to {output_path}")

@@ -46,6 +46,7 @@ htmlcov/
 *_summary.md
 *_summary.json
 *_summary.xml
+*_summary.toon
 
 # Logs
 *.log

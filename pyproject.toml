@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tria"
-version = "0.4.3"
+version = "0.5.0"
 description = "Turn repositories into AI-friendly summaries"
 readme = "README.md"
 license = "MIT"
@@ -12,7 +12,7 @@ authors = [
     {name = "yegekucuk", email = "yegekucuk@gmail.com"}
 ]
 requires-python = ">=3.8"
-keywords = ["git", "repository", "summarization", "ai", "llm", "markdown", "json", "xml"]
+keywords = ["git", "repository", "summarization", "ai", "llm", "toon", "markdown", "json", "xml"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
