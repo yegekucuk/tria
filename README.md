@@ -3,9 +3,9 @@
 [![PyPi Package](https://img.shields.io/badge/pypi%20package-live-green)](https://pypi.org/project/git2mind/)
 [![PyPI Downloads](https://static.pepy.tech/personalized-badge/git2mind?period=total&units=INTERNATIONAL_SYSTEM&left_color=GRAY&right_color=GREEN&left_text=total%20downloads)](https://pepy.tech/projects/git2mind)
 
-**Turn Python repositories into AI-friendly format (.md / .json / .xml / .toon)**
+**Turn repositories into AI-friendly format (.md / .json / .xml / .toon)**
 
-tria scans a git repository, analyzes commits, branches, and contributors, extracts and chunks files intelligently, and produces summaries that are ready for LLM consumption. Perfect for onboarding and documentation generation.
+tria scans a git repository, analyzes commits, branches, and contributors, extracts and chunks files intelligently, and sproduces summaries that are ready for LLM consumption. Perfect for onboarding and documentation generation.
 
 ## 🚀 Features
 
@@ -14,7 +14,7 @@ tria scans a git repository, analyzes commits, branches, and contributors, extra
 - ✅ Create project structure tree
 - ✅ Analyze commits, branches and contributors
 - ✅ Exclude binary files and common ignore patterns, default gitignore file support & custom exclusions
-- ✅ Python, Markdown, Dockerfile and License parsers
+- ✅ Python, JavaScript, TypeScript, Markdown, Dockerfile and License parsers
 - ✅ Simple line-based chunking
 - ✅ Multiple output formats
 - ✅ [PyPI package (git2mind)](https://pypi.org/project/git2mind/)

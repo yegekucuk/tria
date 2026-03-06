@@ -19,7 +19,7 @@ def main():
     logger = logging.getLogger(__name__)
 
     parser = argparse.ArgumentParser(
-        description="tria - Turn Python repositories into AI-friendly format.",
+        description="tria - Turn repositories into AI-friendly format.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

@@ -115,7 +115,7 @@ class MarkdownWriter:
             content.append(f"*Size:* {doc.size_bytes} bytes, {doc.lines} lines  ")
 
             # Add metadata
-            if doc.language == "python":
+            if doc.language in {"python", "javascript", "typescript"}:
                 if doc.meta.get("classes", []):
                     content.append(f"*Classes:* {', '.join(doc.meta['classes'])}  ")
                 if doc.meta.get("functions", []):
@@ -243,7 +243,7 @@ class JsonWriter:
                 "metadata": {}
             }
             
-            if doc.language == "python":
+            if doc.language in {"python", "javascript", "typescript"}:
                 file_info["metadata"]["functions"] = doc.meta.get("functions", [])
                 file_info["metadata"]["classes"] = doc.meta.get("classes", [])
             elif doc.language == "markdown":
@@ -368,7 +368,7 @@ class XMLWriter:
             # Add metadata
             metadata = ET.SubElement(file_elem, "metadata")
             
-            if doc.language == "python":
+            if doc.language in {"python", "javascript", "typescript"}:
                 if doc.meta.get("functions"):
                     funcs = ET.SubElement(metadata, "functions")
                     for func in doc.meta["functions"]:
@@ -567,7 +567,7 @@ class TOONWriter:
                 "metadata": {}
             }
             
-            if doc.language == "python":
+            if doc.language in {"python", "javascript", "typescript"}:
                 file_info["metadata"]["functions"] = doc.meta.get("functions", [])
                 file_info["metadata"]["classes"] = doc.meta.get("classes", [])
             elif doc.language == "markdown":

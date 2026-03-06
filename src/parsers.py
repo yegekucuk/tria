@@ -46,6 +46,39 @@ class PythonParser(BaseParser):
         })
         return doc
 
+
+class JavaScriptParser(BaseParser):
+    IDENTIFIER_RE = r'[A-Za-z_$][A-Za-z0-9_$]*'
+
+    FUNCTION_PATTERNS = (
+        rf'\bfunction\s+({IDENTIFIER_RE})\s*(?:<[^>\n]+>)?\s*\(',
+        rf'\b(?:const|let|var)\s+({IDENTIFIER_RE})(?:\s*:\s*[^\n=]+)?\s*=\s*(?:async\s*)?function\b',
+        rf'\b(?:const|let|var)\s+({IDENTIFIER_RE})(?:\s*:\s*[^\n=]+)?\s*=\s*(?:async\s*)?(?:\([^)]*\)|{IDENTIFIER_RE})\s*(?::\s*[^\n=]+)?=>',
+    )
+
+    CLASS_PATTERN = rf'\bclass\s+({IDENTIFIER_RE})\b'
+
+    def get_language(self, path: Path) -> str:
+        return "javascript"
+
+    def parse(self, path: Path, content: str) -> Document:
+        doc = super().parse(path, content)
+        functions = []
+        for pattern in self.FUNCTION_PATTERNS:
+            functions.extend(re.findall(pattern, content))
+        classes = re.findall(self.CLASS_PATTERN, content)
+
+        doc.meta.update({
+            "functions": sorted(set(functions)),
+            "classes": sorted(set(classes)),
+        })
+        return doc
+
+
+class TypeScriptParser(JavaScriptParser):
+    def get_language(self, path: Path) -> str:
+        return "typescript"
+
 class MarkdownParser(BaseParser):
     def get_language(self, path: Path) -> str:
         return "markdown"
@@ -133,6 +166,14 @@ def get_parser(path: Path) -> BaseParser:
     ext = path.suffix.lower()
     parsers = {
         '.py': PythonParser(),
+        '.js': JavaScriptParser(),
+        '.jsx': JavaScriptParser(),
+        '.mjs': JavaScriptParser(),
+        '.cjs': JavaScriptParser(),
+        '.ts': TypeScriptParser(),
+        '.tsx': TypeScriptParser(),
+        '.mts': TypeScriptParser(),
+        '.cts': TypeScriptParser(),
         '.md': MarkdownParser(),
         '.txt': TextParser(),
     }
